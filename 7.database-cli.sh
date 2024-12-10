@@ -21,7 +21,8 @@ set -u
 # create - database 
 
 # Variables
-DATABASE="my_database"
+CONFIG="/tmp/database-config/config.conf"
+DATABASE=""
 TABLE=""
 
 # Functions
@@ -118,28 +119,67 @@ delete_data(){
     return 0
 }
 
+create_config(){
+    if [ ! -e "$CONFIG" 2>/dev/null ] ; then
+    # TO DO: Variable path
+        mkdir -m 1700 -p /tmp/database-config && \
+            touch "$CONFIG" && \
+                chmod 1700 "$CONFIG"
+    fi
+    echo "DATABASE=" >> "$CONFIG"
+    echo "TABLE=" >> "$CONFIG"
+}
+
+load_config(){
+    if [ -e "$CONFIG" 2>/dev/null ] ; then
+        DATABASE=`grep -e DATABASE "$CONFIG" | cut -f2 -d"="`
+        TABLE=`grep -e TABLE "$CONFIG" | cut -f2 -d"="`
+        return 0
+    fi
+    return 1
+}
+
+update_config(){
+    if [ -e "$CONFIG" 2>/dev/null ] ; then
+        sed -i '' -E "s/DATABASE=.*/DATABASE=${1}/" "$CONFIG"
+        sed -i '' -E "s/TABLE=.*/TABLE=${2}/" "$CONFIG"
+        load_config
+        return 0
+    fi
+    return 1
+}
+
+show_config(){
+    echo "Using:"
+    echo "Database: $DATABASE"
+    echo "Table: $TABLE"
+}
+
 
 
 # Main program
+load_config || \
+create_config | echo "Choose database and table to operate on."
 while [ "$#" -gt 0 ] ; do 
     case "$2" in 
     data)
         case "$1" in 
         add)
-            TABLE="$3"
-            shift 3
+            shift 2
             if [ -e "./$DATABASE/$TABLE.csv" ] ; then
-                create_record "$@" && echo "Record successfully added" || echo "Error during record creation"
+                create_record "$@" && \
+                    echo "Record successfully added" ||\
+                    echo "Error during record creation"
             else
                 echo "Database not exists."
             fi
             ;;
         delete)
-            TABLE="$3"
-            delete_data $4 && echo "Delete successfull" || echo "Delete failed"
+            delete_data $3 &&\
+            echo "Delete successfull" ||\
+            echo "Delete failed"
             ;;
         select)
-                TABLE=$3
                 select_all_records
             ;;
         *)
@@ -152,12 +192,16 @@ while [ "$#" -gt 0 ] ; do
     table)
         case "$1" in 
         add)
-            create_table $DATABASE $3 && echo "Table created" || echo "Table already exist or there is a folder with the same name."
-            TABLE="$3"
+            create_table $DATABASE $3 && \
+                echo "Table created" || \
+                echo "Table already exist or there is a folder with the same name."
+            update_config $DATABASE $3
             shift 3  
             if [ ! -s "./$DATABASE/$TABLE.csv" ] ; then
                 while [ "$#" -gt 0 ] ; do
-                    create_attrib $DATABASE $TABLE $1 && echo "Column added: $1" || echo "Table not exist or error during column creation"
+                    create_attrib $DATABASE $TABLE $1 && \
+                        echo "Column added: $1" || \
+                        echo "Table not exist or error during column creation"
                     shift 1
                 done
                 echo "" >> "./$DATABASE/$TABLE.csv"
@@ -166,9 +210,18 @@ while [ "$#" -gt 0 ] ; do
             ;;
         delete)
             TABLE=$3
-            rm -i "./$DATABASE/$TABLE.csv" && echo "Table $TABLE deleted sucessfully" || echo "Error during deletion"
+            rm -i "./$DATABASE/$TABLE.csv" && \
+                echo "Table $TABLE deleted sucessfully" ||\
+                echo "Error during deletion"
+            update_config $DATABASE ""
             shift 3
             ;;
+        update)
+            update_config $DATABASE $3 &&\
+                echo "Table changed to: $3" ||\
+                echo "Error during switching table"
+            shift 1
+        ;;
         *)
                 echo "Wrong option: $1"
                 exit 1
@@ -179,14 +232,28 @@ while [ "$#" -gt 0 ] ; do
     database)
         case "$1" in 
         add)
-             create_database "$3" && echo "Database created" || echo "Database already exists or file with same name."
-             DATABASE="$3"
+             create_database "$3" &&\
+                 echo "Database created" ||\
+                 echo "Database already exists or file with same name."
+             update_config "$3" ""
             shift 1
             ;;
         delete)
             DATABASE=$3
-            rm -rfi "./$DATABASE" && echo "Database $DATABASE deleted sucessfully" || echo "Error during deletion"
+            rm -rfi "./$DATABASE" &&\
+                echo "Database $DATABASE deleted sucessfully" ||\
+                echo "Error during deletion"
+            update_config "" ""
             shift 3
+            ;;
+        update)
+             update_config "$3" "" &&\
+                 echo "Database switched to: $3" ||\
+                 echo "Error during switching database"
+            shift 1
+            ;;
+        config)
+            show_config
             ;;
         *)
                 echo "Wrong option: $1"
