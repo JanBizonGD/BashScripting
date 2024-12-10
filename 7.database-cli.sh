@@ -9,8 +9,10 @@ set -u
 # rec3; ...
 # rec4; ...
 #
-# TO DO : script return error after execution - even if it looks like its working fine
+# TO DO : Error handling
 # TO DO : what if command lacks arguments
+# TO DO : Proper testing 
+# TO DO : Documentation
 #
 #
 # Supported operations:
@@ -85,9 +87,40 @@ select_all_records(){
     }' "./$DATABASE/$TABLE.csv"
 }
 
+delete_data(){
+    COL=`echo $1 | cut -f1 -d'='`
+    VAL=`echo $1 | cut -f2 -d'='`
+    COL_ID=`head -n 1 "./$DATABASE/$TABLE.csv" | 
+    awk -F ";" -v COL=$COL -v VAL=$VAL '{
+        for (i=1; i<NF; i++){
+            if ($i == COL){
+                print i
+            }
+        }
+    }' "./$DATABASE/$TABLE.csv" `
+    LINE=`awk -F ";" -v COL_ID=$COL_ID -v VAL=$VAL '{
+        for (i=1; i<NF; i++){
+            if( i==COL_ID && $i==VAL) {
+                print NR
+                exit
+            }
+        }
+    }' "./$DATABASE/$TABLE.csv" `
+    if [[ -z $LINE ]] ; then
+        return 1
+    fi
+    if [ -e "./$DATABASE/$TABLE.csv" ] ; then
+        return `sed -i '' -e "${LINE} d" "./$DATABASE/$TABLE.csv" ` 
+    else
+        echo "Delete: File not found."
+        return 1
+    fi
+    return 0
+}
 
 
-# Input processing
+
+# Main program
 while [ "$#" -gt 0 ] ; do 
     case "$2" in 
     data)
@@ -102,6 +135,8 @@ while [ "$#" -gt 0 ] ; do
             fi
             ;;
         delete)
+            TABLE="$3"
+            delete_data $4 && echo "Delete successfull" || echo "Delete failed"
             ;;
         select)
                 TABLE=$3
@@ -164,5 +199,5 @@ while [ "$#" -gt 0 ] ; do
     shift 1
 done
 
-# Main program
+exit 0
 
