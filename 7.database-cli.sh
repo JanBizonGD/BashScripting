@@ -63,6 +63,28 @@ create_record(){
     return 1
 }
 
+select_all_records(){
+    awk -F ";" '
+    { 
+        if (NR == 1 ){
+            dash = sprintf("%0*s", 20*NF+1, "0")
+            gsub(/0/, "-", dash );
+            print dash
+            printf "|%5s%-5.10s%3s|", " ", " ", " "
+        } else {
+            printf "|%5s%-5.10s%3s|", " ", NR-1, " "
+        }
+        for (i = 1; i < NF; i++) {
+            printf "|%7s%-10.10s%3s|", " ", $i, " "
+        }; 
+        print ""
+        dash = sprintf("%0*s", 20*NF+1, "0")
+        gsub(/0/, "-", dash );
+        print dash
+       
+    }' "./$DATABASE/$TABLE.csv"
+}
+
 
 
 # Input processing
@@ -82,6 +104,8 @@ while [ "$#" -gt 0 ] ; do
         delete)
             ;;
         select)
+                TABLE=$3
+                select_all_records
             ;;
         *)
                 echo "Wrong option: $1"
