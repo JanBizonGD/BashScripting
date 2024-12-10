@@ -9,6 +9,8 @@ set -u
 # rec3; ...
 # rec4; ...
 #
+# TO DO : script return error after execution - even if it looks like its working fine
+# TO DO : what if command lacks arguments
 #
 #
 # Supported operations:
@@ -37,12 +39,30 @@ create_table() {
     return 1
 }
 
-create_column(){
+create_attrib(){
     if [ -e "./$1/$2.csv" ] ; then
        return `echo -n "$3;" >> "./$1/$2.csv"`
     fi
     return 1
 }
+
+create_record(){
+    # There is assumtion that there is a header in specified data
+    N=$( head -n 1 "./$DATABASE/$TABLE.csv" | awk -F ";" '{ print NF-1 }') 
+    if [[ "$N" -eq "$#" ]] ; then
+        while [ "$#" -gt 0 ] ; do
+            create_attrib $DATABASE $TABLE $1 
+            shift 1
+        done
+        echo "" >> "./$DATABASE/$TABLE.csv"
+        return 0
+    else
+        echo "Wrong number of attribute specified."
+        echo "Specified: "$#", Required: $N" 
+    fi
+    return 1
+}
+
 
 
 # Input processing
@@ -51,6 +71,13 @@ while [ "$#" -gt 0 ] ; do
     data)
         case "$1" in 
         add)
+            TABLE="$3"
+            shift 3
+            if [ -e "./$DATABASE/$TABLE.csv" ] ; then
+                create_record "$@" && echo "Record successfully added" || echo "Error during record creation"
+            else
+                echo "Database not exists."
+            fi
             ;;
         delete)
             ;;
@@ -61,7 +88,7 @@ while [ "$#" -gt 0 ] ; do
                 exit 1
             ;;
         esac
-        shift 1
+        shift "$#"
         ;;
     table)
         case "$1" in 
@@ -71,7 +98,7 @@ while [ "$#" -gt 0 ] ; do
             shift 3  
             if [ ! -s "./$DATABASE/$TABLE.csv" ] ; then
                 while [ "$#" -gt 0 ] ; do
-                    create_column $DATABASE $TABLE $1 && echo "Column added: $1" || echo "Table not exist or error during column creation"
+                    create_attrib $DATABASE $TABLE $1 && echo "Column added: $1" || echo "Table not exist or error during column creation"
                     shift 1
                 done
                 echo "" >> "./$DATABASE/$TABLE.csv"
