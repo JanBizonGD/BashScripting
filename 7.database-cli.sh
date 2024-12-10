@@ -165,6 +165,9 @@ while [ "$#" -gt 0 ] ; do
             shift "$#"
             ;;
         delete)
+            TABLE=$3
+            rm -i "./$DATABASE/$TABLE.csv" && echo "Table $TABLE deleted sucessfully" || echo "Error during deletion"
+            shift 3
             ;;
         *)
                 echo "Wrong option: $1"
@@ -181,6 +184,9 @@ while [ "$#" -gt 0 ] ; do
             shift 1
             ;;
         delete)
+            DATABASE=$3
+            rm -rfi "./$DATABASE" && echo "Database $DATABASE deleted sucessfully" || echo "Error during deletion"
+            shift 3
             ;;
         *)
                 echo "Wrong option: $1"
