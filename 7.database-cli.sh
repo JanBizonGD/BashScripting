@@ -17,6 +17,8 @@ set -u
 # create - database 
 
 # Variables
+DATABASE="my_database"
+TABLE=""
 
 # Functions
 
@@ -24,6 +26,20 @@ create_database() {
     # Only user can delete this folder and operate on it
     if [ ! -e $1 ] ; then
         return `mkdir -m 1700 $1 2>/dev/null` 
+    fi
+    return 1
+}
+
+create_table() {
+    if [ ! -e "./$1/$2.csv" ] ; then
+        return `touch "./$1/$2.csv" 2>/dev/null && chmod 1700 "./$1/$2.csv" 2>/dev/null `
+    fi
+    return 1
+}
+
+create_column(){
+    if [ -e "./$1/$2.csv" ] ; then
+       return `echo -n "$3;" >> "./$1/$2.csv"`
     fi
     return 1
 }
@@ -50,6 +66,17 @@ while [ "$#" -gt 0 ] ; do
     table)
         case "$1" in 
         add)
+            create_table $DATABASE $3 && echo "Table created" || echo "Table already exist or there is a folder with the same name."
+            TABLE="$3"
+            shift 3  
+            if [ ! -s "./$DATABASE/$TABLE.csv" ] ; then
+                while [ "$#" -gt 0 ] ; do
+                    create_column $DATABASE $TABLE $1 && echo "Column added: $1" || echo "Table not exist or error during column creation"
+                    shift 1
+                done
+                echo "" >> "./$DATABASE/$TABLE.csv"
+            fi
+            shift "$#"
             ;;
         delete)
             ;;
@@ -64,6 +91,7 @@ while [ "$#" -gt 0 ] ; do
         case "$1" in 
         add)
              create_database "$3" && echo "Database created" || echo "Database already exists or file with same name."
+             DATABASE="$3"
             shift 1
             ;;
         delete)
