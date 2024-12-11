@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 # Automated tests for database 
 
 # Variables
@@ -7,9 +7,6 @@ FOLDER="./"
 
 RUN="${FOLDER}${CLI_NAME}"
 YES="$1"
-if [[ -n ${YES} ]] ; then 
-    YES="${YES} | "
-fi
 
 # Tests
 
@@ -31,8 +28,13 @@ ${RUN} delete data "id=3"
 ${RUN} select data 
 ${RUN} delete data "location=Krakow"
 ${RUN} select data 
-${YES} ${RUN} delete table my_table
-${YES} ${RUN} delete database my_database
+if [[ -n "$YES" ]] ; then 
+    ${YES} | ${RUN} delete table my_table
+    ${YES} | ${RUN} delete database my_database
+else
+    ${RUN} delete table my_table
+    ${RUN} delete database my_database
+fi
 echo --------------------------------------------------
 
 # Print tables and databases
@@ -49,8 +51,13 @@ ${RUN} add data 5 Ania Lodz
 ${RUN} select data 
 ${RUN} select table 
 ${RUN} select database 
-${YES} ${RUN} delete table my_table
-${YES} ${RUN} delete database my_database
+if [[ -n "$YES" ]] ; then 
+    ${YES} | ${RUN} delete table my_table
+    ${YES} | ${RUN} delete database my_database
+else
+    ${RUN} delete table my_table
+    ${RUN} delete database my_database
+fi
 echo --------------------------------------------------
 
 # When database or table exists
@@ -69,8 +76,13 @@ ${RUN} add data 5 Ania Lodz
 ${RUN} select data 
 ${RUN} select table 
 ${RUN} select database 
-${YES} ${RUN} delete table my_table
-${YES} ${RUN} delete database my_database
+if [[ -n "$YES" ]] ; then 
+    ${YES} | ${RUN} delete table my_table
+    ${YES} | ${RUN} delete database my_database
+else
+    ${RUN} delete table my_table
+    ${RUN} delete database my_database
+fi
 echo --------------------------------------------------
 
 # Lacking arguments
@@ -87,8 +99,13 @@ ${RUN} add data 5 Ania Lodz
 ${RUN} select  
 ${RUN} select  
 ${RUN} select  
-${YES} ${RUN} delete table 
-${YES} ${RUN} delete database 
+if [[ -n "$YES" ]] ; then 
+    ${YES} | ${RUN} delete table 
+    ${YES} | ${RUN} delete database 
+else
+    ${RUN} delete table 
+    ${RUN} delete database 
+fi
 echo --------------------------------------------------
 #
 
