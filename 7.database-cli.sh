@@ -9,10 +9,7 @@ set -u
 # rec3; ...
 # rec4; ...
 #
-# TO DO : Error handling
-# TO DO : what if command lacks arguments
-# TO DO : Proper testing 
-# TO DO : Documentation
+# TO DO : attrib and line doesnt conform to requirements
 #
 #
 # Supported operations:
@@ -53,16 +50,18 @@ create_attrib(){
 create_record(){
     # There is assumtion that there is a header in specified data
     N=$( head -n 1 "./$DATABASE/$TABLE.csv" | awk -F "${SEP}" '{ print NF-1 }') 
-    if [[ "$N" -eq "$#" ]] ; then
-        while [ "$#" -gt 0 ] ; do
-            create_attrib $DATABASE $TABLE $1 
-            shift 1
-        done
-        echo "" >> "./$DATABASE/$TABLE.csv"
-        return 0
-    else
-        echo "Wrong number of attribute specified."
-        echo "Specified: "$#", Required: $N" 
+    if [[ "$N" -ge 0 ]] ; then 
+        if [[ "$N" -eq "$#" ]] ; then
+            while [ "$#" -gt 0 ] ; do
+                create_attrib $DATABASE $TABLE $1 
+                shift 1
+            done
+            echo "" >> "./$DATABASE/$TABLE.csv"
+            return 0
+        else
+            echo "Wrong number of attribute specified."
+            echo "Specified: "$#", Required: $N" 
+        fi
     fi
     return 1
 }
@@ -155,12 +154,24 @@ show_config(){
     echo "* Table: $TABLE"
 }
 
+show_databases(){
+    ls -l -p | awk '{print $9}' | grep /  2>/dev/null
+}
+
+show_tables(){
+    ls -p -l "./$1/" | cut -f11 -d" " | grep -v / 2>/dev/null 
+}
+
 
 
 # Main program
 load_config || \
 create_config | echo "Choose database and table to operate on."
 while [ "$#" -gt 0 ] ; do 
+    if [[ $# -lt 2 ]] ; then
+        echo "Operation failed. Arguments specified: $#, Required at least 2."
+        exit 1
+    fi
     case "$2" in 
     data)
         case "$1" in 
@@ -169,18 +180,23 @@ while [ "$#" -gt 0 ] ; do
             if [ -e "./$DATABASE/$TABLE.csv" ] ; then
                 create_record "$@" && \
                     echo "Record successfully added" ||\
-                    echo "Error during record creation"
+                    echo "Error during record creation. Table is broken - needs rebuild."
             else
                 echo "Database not exists."
             fi
             ;;
         delete)
+            if [[ $# -lt 3 ]] ; then 
+                echo "Deletion not successfull. Rule for deletion required."
+                exit 1
+            fi
             delete_data $3 &&\
-            echo "Delete successfull" ||\
-            echo "Delete failed"
+                echo "Deletion successfull" ||\
+                echo "Deletion failed"
             ;;
         select)
-                select_all_records
+                select_all_records ||\
+                    echo "Error during data selection."
             ;;
         *)
                 echo "Wrong option: $1"
@@ -192,9 +208,13 @@ while [ "$#" -gt 0 ] ; do
     table)
         case "$1" in 
         add)
+            if [[ $# -lt 3 ]] ; then 
+                echo "Addition not successfull. Table not provided."
+                exit 1
+            fi
             create_table $DATABASE $3 && \
                 echo "Table created" || \
-                echo "Table already exist or there is a folder with the same name."
+                echo "Table already exist or there is a folder with the same name."&&\
             update_config $DATABASE $3
             shift 3  
             if [ ! -s "./$DATABASE/$TABLE.csv" ] ; then
@@ -209,6 +229,10 @@ while [ "$#" -gt 0 ] ; do
             shift "$#"
             ;;
         delete)
+            if [[ $# -lt 3 ]] ; then
+                echo "Deletion not successfull. Table not provided"
+                exit 1
+            fi
             TABLE=$3
             rm -i "./$DATABASE/$TABLE.csv" && \
                 echo "Table $TABLE deleted sucessfully" ||\
@@ -222,6 +246,10 @@ while [ "$#" -gt 0 ] ; do
                 echo "Error during switching table"
             shift 1
         ;;
+        select)
+            show_tables "${DATABASE}" ||\
+                echo "Error during tables listing."
+            ;;
         *)
                 echo "Wrong option: $1"
                 exit 1
@@ -232,17 +260,25 @@ while [ "$#" -gt 0 ] ; do
     database)
         case "$1" in 
         add)
+            if [[ $# -lt 3 ]] ; then
+                echo "Addition not successfull. Database not provided"
+                exit 1
+            fi
              create_database "$3" &&\
                  echo "Database created" ||\
-                 echo "Database already exists or file with same name."
+                 echo "Database already exists or file with same name." &&\
              update_config "$3" ""
             shift 1
             ;;
         delete)
+            if [[ $# -lt 3 ]] ; then
+                echo "Deletion not successfull. Database not provided"
+                exit 1
+            fi
             DATABASE=$3
             rm -rfi "./$DATABASE" &&\
                 echo "Database $DATABASE deleted sucessfully" ||\
-                echo "Error during deletion"
+                echo "Error during deletion" &&\
             update_config "" ""
             shift 3
             ;;
@@ -253,7 +289,12 @@ while [ "$#" -gt 0 ] ; do
             shift 1
             ;;
         config)
-            show_config
+            show_config ||\
+                echo "Error during database config display"
+            ;;
+        select)
+            show_databases ||\
+                echo "Error during database listing"
             ;;
         *)
                 echo "Wrong option: $1"
