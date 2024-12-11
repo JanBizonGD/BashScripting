@@ -34,15 +34,15 @@ Databases are described via folders and tables via particular files. Files have 
 * **create_database()** - creates database ( folder ) and changes its mode - only usr can perform operations on it (including deletion).
 * **create_table()** - creates table (new file) and changes its mode - only user can perform operations on it (including deletion).
 * **create_attrib()** - adds new addribute for record (eventually new attrib header). 
-**create_record()** - iterates over all input passed to it and for each of them performs insertion. Correctness of records if checked by compering table header size with amount of data inserted. It is not possible to write new data if header is not present.
-**select_all_records()** - prints all records from table.
-**delete_data()** - deletes single record from database based on first occurence of true statement of inserted filter rule. Only compering is supported.
-**create_config()** - creates new config file inside previously defined location
-**load_config()** - loads config before any previous execution
-**update_config()** - updates config file after performing changes on database
-**show_config()** - shows config loaded
-**show_databases()** - shows all databases ( all folders inside current folder )
-**show_tables()** - shows all tables ( all files inside folder s inside current folder )
+* **create_record()** - iterates over all input passed to it and for each of them performs insertion. Correctness of records if checked by compering table header size with amount of data inserted. It is not possible to write new data if header is not present.
+* **select_all_records()** - prints all records from table.
+* **delete_data()** - deletes single record from database based on first occurence of true statement of inserted filter rule. Only compering is supported.
+* **create_config()** - creates new config file inside previously defined location
+* **load_config()** - loads config before any previous execution
+* **update_config()** - updates config file after performing changes on database
+* **show_config()** - shows config loaded
+* **show_databases()** - shows all databases ( all folders inside current folder )
+* **show_tables()** - shows all tables ( all files inside folder s inside current folder )
 
 ## Notes
 * Table without header is broken.
