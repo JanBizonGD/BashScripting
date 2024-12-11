@@ -24,6 +24,7 @@ set -u
 CONFIG="/tmp/database-config/config.conf"
 DATABASE=""
 TABLE=""
+SEP=";"
 
 # Functions
 
@@ -44,14 +45,14 @@ create_table() {
 
 create_attrib(){
     if [ -e "./$1/$2.csv" ] ; then
-       return `echo -n "$3;" >> "./$1/$2.csv"`
+       return `echo -n "$3${SEP}" >> "./$1/$2.csv"`
     fi
     return 1
 }
 
 create_record(){
     # There is assumtion that there is a header in specified data
-    N=$( head -n 1 "./$DATABASE/$TABLE.csv" | awk -F ";" '{ print NF-1 }') 
+    N=$( head -n 1 "./$DATABASE/$TABLE.csv" | awk -F "${SEP}" '{ print NF-1 }') 
     if [[ "$N" -eq "$#" ]] ; then
         while [ "$#" -gt 0 ] ; do
             create_attrib $DATABASE $TABLE $1 
@@ -67,7 +68,7 @@ create_record(){
 }
 
 select_all_records(){
-    awk -F ";" '
+    awk -F "${SEP}" '
     { 
         if (NR == 1 ){
             dash = sprintf("%0*s", 20*NF+1, "0")
@@ -92,14 +93,14 @@ delete_data(){
     COL=`echo $1 | cut -f1 -d'='`
     VAL=`echo $1 | cut -f2 -d'='`
     COL_ID=`head -n 1 "./$DATABASE/$TABLE.csv" | 
-    awk -F ";" -v COL=$COL -v VAL=$VAL '{
+    awk -F "${SEP}" -v COL=$COL -v VAL=$VAL '{
         for (i=1; i<NF; i++){
             if ($i == COL){
                 print i
             }
         }
     }' "./$DATABASE/$TABLE.csv" `
-    LINE=`awk -F ";" -v COL_ID=$COL_ID -v VAL=$VAL '{
+    LINE=`awk -F "${SEP}" -v COL_ID=$COL_ID -v VAL=$VAL '{
         for (i=1; i<NF; i++){
             if( i==COL_ID && $i==VAL) {
                 print NR
@@ -150,9 +151,8 @@ update_config(){
 }
 
 show_config(){
-    echo "Using:"
-    echo "Database: $DATABASE"
-    echo "Table: $TABLE"
+    echo "* Database: $DATABASE"
+    echo "* Table: $TABLE"
 }
 
 
