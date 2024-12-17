@@ -2,10 +2,15 @@
 set -e 
 # Fibbonaci sequence generator
 
+if [ $# -lt 1 ] ; then
+    echo "Wrong number of arguments - should be at least 1"
+    exit 1
+fi
+
 # Global variables
-FN1=0
-FN2=1
-N=$1
+f_N1=0                      # first relative term of sequence used to calculate new term
+f_N2=1
+TERM_NUMBER=$1
 
 # Function definitions
 fibbonacci () {
@@ -14,20 +19,20 @@ fibbonacci () {
 }
 
 # Program
-if [ $N -lt 0 ] ; then 
-    echo "Wrong number of iterations - should be >= 0)."
+if [ "$TERM_NUMBER" -lt 0 ] ; then 
+    echo "Wrong number of sequence term - should be >= 0)."
     exit 1
-elif [ $N -eq 0 ] ; then
-    echo $FN1
-elif [ $N -eq 1 ] ; then 
-    echo $FN2
+elif [ "$TERM_NUMBER" -eq 0 ] ; then
+    echo $f_N1
+elif [ "$TERM_NUMBER" -eq 1 ] ; then 
+    echo $f_N2
 else
-    N=$(( $N - 1 ))
-    for i in `seq $N`; do 
-        X=$FN2
-        FN2=`fibbonacci $FN1 $FN2`
-        FN1=$X
+    TERM_NUMBER=$(( TERM_NUMBER - 1 ))
+    for _ in $(seq "$TERM_NUMBER"); do 
+        buff=$f_N2
+        f_N2=$(fibbonacci "$f_N1" "$f_N2")
+        f_N1="$buff"
     done
-    echo $FN2
+    echo "$f_N2"
 fi
 
