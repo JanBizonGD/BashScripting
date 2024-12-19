@@ -97,12 +97,7 @@ while read -r SINGLELINE; do
     fi
     conv_text=$(take_not_empty "$last_step_text" "$SINGLELINE")
     if [ $reverseFlag  = true ] ; then
-       #N={#SINGLELINE}
-       N=$(wc -c <<< "${conv_text}")
-       last_step_text=""
-       for((i=N-1 ; i>=0 ; i--)); do
-            last_step_text="$last_step_text${conv_text:$i:1}"
-        done
+      last_step_text=$(rev <<< "${conv_text}")
     fi
     conv_text=$(take_not_empty "$last_step_text" "$SINGLELINE")
     if [ $lowerFlag = true ] ; then
@@ -114,20 +109,15 @@ while read -r SINGLELINE; do
     fi
     conv_text=$(take_not_empty "$last_step_text" "$SINGLELINE")
     if [ $flipCaseFlag = true ] ; then
-       N=$(wc -c <<< "${conv_text}")
-       last_step_text=""
-       for _ in $(seq 0 "$N"); do
-            ch=${conv_text:$i:1}
-            case $ch in
-            [[:lower:]])
-                ch=$( echo "${ch}" | awk '{print toupper($0) }' )
-                ;;
-            [[:upper:]])
-                ch=$( echo "${ch}" | awk '{print tolower($0) }' )
-                ;;
-            esac
-            last_step_text="${last_step_text}${ch}" 
-       done
+    # problem with i in line on macos
+      last_step_text=$(echo "${conv_text}" | awk '{
+        split($0, line, "");
+        for(i=1; i<=length($0); i++) {
+            if(line[i] ~ /[a-z]/) printf("%c", toupper(line[i]));
+            if(line[i] ~ /[A-Z]/) printf("%c", tolower(line[i]));
+        };
+        print ""
+      }')
     fi
     conv_text=$(take_not_empty "$last_step_text" "$SINGLELINE")
     echo "${last_step_text}" >> "${OUTPUT}"
