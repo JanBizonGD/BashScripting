@@ -9,7 +9,8 @@ set -u
 # rec3; ...
 # rec4; ...
 #
-# TO DO : attrib and line doesnt conform to requirements
+# TO DO : attrib and line doesnt conform to requirements - one record = 39 char , one attrib = 8 char, ** - start, end, space before text starts
+# TO DO : one file = one database 
 #
 #
 # Supported operations:
@@ -18,7 +19,9 @@ set -u
 # create - database 
 
 # Variables
-CONFIG="/tmp/database-config/config.conf"
+CONFIG_FILE="config.conf"
+CONFIG_FOLDER="/tmp/database-config/"
+CONFIG="$CONFIG_FOLDER$CONFIG_FILE"
 DATABASE=""
 TABLE=""
 SEP=";"
@@ -27,22 +30,22 @@ SEP=";"
 
 create_database() {
     # Only user can delete this folder and operate on it
-    if [ ! -e $1 ] ; then
-        return `mkdir -m 1700 $1 2>/dev/null` 
+    if [ ! -e "$1" ] ; then
+        return $(mkdir -m 1700 "$1" 2>/dev/null)
     fi
     return 1
 }
 
 create_table() {
     if [ ! -e "./$1/$2.csv" ] ; then
-        return `touch "./$1/$2.csv" 2>/dev/null && chmod 1700 "./$1/$2.csv" 2>/dev/null `
+        return $(touch "./$1/$2.csv" 2>/dev/null && chmod 1700 "./$1/$2.csv" 2>/dev/null)
     fi
     return 1
 }
 
 create_attrib(){
     if [ -e "./$1/$2.csv" ] ; then
-       return `echo -n "$3${SEP}" >> "./$1/$2.csv"`
+       return $(echo -n "$3${SEP}" >> "./$1/$2.csv")
     fi
     return 1
 }
@@ -53,14 +56,14 @@ create_record(){
     if [[ "$N" -ge 0 ]] ; then 
         if [[ "$N" -eq "$#" ]] ; then
             while [ "$#" -gt 0 ] ; do
-                create_attrib $DATABASE $TABLE $1 
+                create_attrib "$DATABASE" "$TABLE" "$1" 
                 shift 1
             done
             echo "" >> "./$DATABASE/$TABLE.csv"
             return 0
         else
             echo "Wrong number of attribute specified."
-            echo "Specified: "$#", Required: $N" 
+            echo "Specified: $#, Required: $N" 
         fi
     fi
     return 1
@@ -89,40 +92,37 @@ select_all_records(){
 }
 
 delete_data(){
-    COL=`echo $1 | cut -f1 -d'='`
-    VAL=`echo $1 | cut -f2 -d'='`
-    COL_ID=`head -n 1 "./$DATABASE/$TABLE.csv" | 
-    awk -F "${SEP}" -v COL=$COL -v VAL=$VAL '{
+    COL=$(echo "$1" | cut -f1 -d'=')
+    VAL=$(echo "$1" | cut -f2 -d'=')
+    COL_ID=$(head -n 1 "./$DATABASE/$TABLE.csv" | 
+    awk -F "${SEP}" -v COL="$COL" -v VAL="$VAL" '{
         for (i=1; i<NF; i++){
             if ($i == COL){
                 print i
             }
         }
-    }' "./$DATABASE/$TABLE.csv" `
-    LINE=`awk -F "${SEP}" -v COL_ID=$COL_ID -v VAL=$VAL '{
+    }' "./$DATABASE/$TABLE.csv" )
+    LINE=$(awk -F "${SEP}" -v COL_ID="$COL_ID" -v VAL="$VAL" '{
         for (i=1; i<NF; i++){
             if( i==COL_ID && $i==VAL) {
                 print NR
                 exit
             }
         }
-    }' "./$DATABASE/$TABLE.csv" `
-    if [[ -z $LINE ]] ; then
+    }' "./$DATABASE/$TABLE.csv" )
+    if [[ -z "$LINE" ]] ; then
         return 1
     fi
     if [ -e "./$DATABASE/$TABLE.csv" ] ; then
-        return `sed -i '' -e "${LINE} d" "./$DATABASE/$TABLE.csv" ` 
-    else
-        echo "Delete: File not found."
-        return 1
+        return $(sed -i '' -e "${LINE} d" "./$DATABASE/$TABLE.csv" )
     fi
-    return 0
+    echo "Delete: File not found."
+    return 1
 }
 
 create_config(){
-    if [ ! -e "$CONFIG" 2>/dev/null ] ; then
-    # TO DO: Variable path
-        mkdir -m 1700 -p /tmp/database-config && \
+    if [ ! -e "$CONFIG" ] 2>/dev/null ; then
+        mkdir -m 1700 -p "$CONFIG_FOLDER" && \
             touch "$CONFIG" && \
                 chmod 1700 "$CONFIG"
     fi
@@ -131,16 +131,16 @@ create_config(){
 }
 
 load_config(){
-    if [ -e "$CONFIG" 2>/dev/null ] ; then
-        DATABASE=`grep -e DATABASE "$CONFIG" | cut -f2 -d"="`
-        TABLE=`grep -e TABLE "$CONFIG" | cut -f2 -d"="`
+    if [ -e "$CONFIG" ] 2>/dev/null ; then
+        DATABASE=$(grep -e DATABASE "$CONFIG" | cut -f2 -d"=")
+        TABLE=$(grep -e TABLE "$CONFIG" | cut -f2 -d"=")
         return 0
     fi
     return 1
 }
 
 update_config(){
-    if [ -e "$CONFIG" 2>/dev/null ] ; then
+    if [ -e "$CONFIG" ] 2>/dev/null ; then
         sed -i '' -E "s/DATABASE=.*/DATABASE=${1}/" "$CONFIG"
         sed -i '' -E "s/TABLE=.*/TABLE=${2}/" "$CONFIG"
         load_config
@@ -166,9 +166,9 @@ show_tables(){
 
 # Main program
 load_config || \
-create_config | echo "Choose database and table to operate on."
+create_config || echo "Choose database and table to operate on."
 while [ "$#" -gt 0 ] ; do 
-    if [[ $# -lt 2 ]] ; then
+    if [[ "$#" -lt 2 ]] ; then
         echo "Operation failed. Arguments specified: $#, Required at least 2."
         exit 1
     fi
@@ -186,11 +186,11 @@ while [ "$#" -gt 0 ] ; do
             fi
             ;;
         delete)
-            if [[ $# -lt 3 ]] ; then 
+            if [[ "$#" -lt 3 ]] ; then 
                 echo "Deletion not successfull. Rule for deletion required."
                 exit 1
             fi
-            delete_data $3 &&\
+            delete_data "$3" &&\
                 echo "Deletion successfull" ||\
                 echo "Deletion failed"
             ;;
@@ -208,18 +208,18 @@ while [ "$#" -gt 0 ] ; do
     table)
         case "$1" in 
         add)
-            if [[ $# -lt 3 ]] ; then 
+            if [[ "$#" -lt 3 ]] ; then 
                 echo "Addition not successfull. Table not provided."
                 exit 1
             fi
-            create_table $DATABASE $3 && \
+            create_table "$DATABASE" "$3" && \
                 echo "Table created" || \
                 echo "Table already exist or there is a folder with the same name."&&\
-            update_config $DATABASE $3
+            update_config "$DATABASE" "$3"
             shift 3  
             if [ ! -s "./$DATABASE/$TABLE.csv" ] ; then
                 while [ "$#" -gt 0 ] ; do
-                    create_attrib $DATABASE $TABLE $1 && \
+                    create_attrib "$DATABASE" "$TABLE" "$1" && \
                         echo "Column added: $1" || \
                         echo "Table not exist or error during column creation"
                     shift 1
@@ -229,7 +229,7 @@ while [ "$#" -gt 0 ] ; do
             shift "$#"
             ;;
         delete)
-            if [[ $# -lt 3 ]] ; then
+            if [[ "$#" -lt 3 ]] ; then
                 echo "Deletion not successfull. Table not provided"
                 exit 1
             fi
@@ -237,11 +237,11 @@ while [ "$#" -gt 0 ] ; do
             rm -i "./$DATABASE/$TABLE.csv" && \
                 echo "Table $TABLE deleted sucessfully" ||\
                 echo "Error during deletion"
-            update_config $DATABASE ""
+            update_config "$DATABASE" ""
             shift 3
             ;;
         update)
-            update_config $DATABASE $3 &&\
+            update_config "$DATABASE" "$3" &&\
                 echo "Table changed to: $3" ||\
                 echo "Error during switching table"
             shift 1
@@ -260,7 +260,7 @@ while [ "$#" -gt 0 ] ; do
     database)
         case "$1" in 
         add)
-            if [[ $# -lt 3 ]] ; then
+            if [[ "$#" -lt 3 ]] ; then
                 echo "Addition not successfull. Database not provided"
                 exit 1
             fi
@@ -271,7 +271,7 @@ while [ "$#" -gt 0 ] ; do
             shift 1
             ;;
         delete)
-            if [[ $# -lt 3 ]] ; then
+            if [[ "$#" -lt 3 ]] ; then
                 echo "Deletion not successfull. Database not provided"
                 exit 1
             fi
@@ -305,8 +305,8 @@ while [ "$#" -gt 0 ] ; do
         ;;
     *)
             echo "Wrong option: $2"
-            echo Commands should be inserted as follows:
-            echo database-cli.sh [operation] [database/table/data] [value]
+            echo "Commands should be inserted as follows:"
+            echo "database-cli.sh [operation] [database/table/data] [value]"
             exit 1
         ;;
     esac
